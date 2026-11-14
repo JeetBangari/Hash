@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -153,10 +153,11 @@ def signup(request: SignupRequest):
     return {"status": "success", "message": "Account created securely!"}
 
 @app.post("/api/login")
-def login(request: LoginRequest):
+def login(request: LoginRequest, background_tasks: BackgroundTasks):
     success, result = auth.verify_credentials(request.email, request.password)
     if success:
-        auth.generate_and_store_otp(request.email)
+        # Send OTP asynchronously in the background for instant response
+        background_tasks.add_task(auth.generate_and_store_otp, request.email)
         return {"status": "success", "message": "OTP Sent"}
     raise HTTPException(status_code=401, detail=result)
 
@@ -557,7 +558,6 @@ def chat_with_ai(request: ChatRequest):
 # ==========================================
 # 🌐 FRONTEND HOSTING
 # ==========================================
-# Mount the static directory to serve app.js and style.css securely
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
