@@ -1,5 +1,5 @@
 // ==========================================
-// 🌐 GLOBAL STATE
+// 🌐 GLOBAL STATE & HELPERS
 // ==========================================
 let chatHistory = [];
 let currentMode = "demo";
@@ -14,6 +14,15 @@ function toggleAuthMode(mode) {
     }
 }
 
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById("password");
+    if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+    } else {
+        passwordInput.type = "password";
+    }
+}
+
 async function signup() {
     const name = document.getElementById("signup-name").value;
     const email = document.getElementById("signup-email").value;
@@ -22,7 +31,6 @@ async function signup() {
     if (!name || !email || !password) return alert("Please fill in all fields.");
 
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/signup`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -45,8 +53,15 @@ async function signup() {
 async function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    
+    if (!email || !password) return alert("Please enter email and password");
+
+    const loginBtn = document.querySelector("#login-section button");
+    const originalText = loginBtn.innerText;
+    loginBtn.innerText = "Waking Server & Sending OTP...";
+    loginBtn.disabled = true;
+
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/login`, { 
             method: "POST", 
             headers: { 
@@ -65,8 +80,11 @@ async function login() {
             alert("Login Failed: " + (errorData.detail || "Unknown error")); 
         }
     } catch (e) { 
-        alert("Server error. Check if the backend is running."); 
+        alert("Server error. Check if backend is running."); 
         console.error("Login Error:", e);
+    } finally {
+        loginBtn.innerText = originalText;
+        loginBtn.disabled = false;
     }
 }
 
@@ -74,7 +92,6 @@ async function verifyOTP() {
     const email = sessionStorage.getItem("login_email");
     const otp = document.getElementById("otp").value;
     
-    // FIXED: Hardcoded exact relative path
     const res = await fetch(`/api/verify-otp`, { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
@@ -118,7 +135,6 @@ function initDashboard() {
 
 async function refreshUserData() {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    // FIXED: Hardcoded exact relative path
     const res = await fetch(`/api/user-data`, { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
@@ -182,7 +198,6 @@ async function analyzeStocks() {
     grid.innerHTML = "<div style='color: #333; font-weight: bold;'>Loading AI Analysis... Please wait.</div>"; 
 
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/analyze`, { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
@@ -298,7 +313,6 @@ async function searchNews() {
     container.innerHTML = "Loading...";
     
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/market-updates?query=${encodeURIComponent(query)}`, {
             method: "GET",
             headers: {
@@ -353,7 +367,6 @@ async function executeTrade() {
     };
     
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/trade`, { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
@@ -383,7 +396,6 @@ async function renderPortfolio() {
     document.getElementById("total-pnl").style.color = "#31333F";
     
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/portfolio-data`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: user.email, mode: currentMode })
@@ -460,7 +472,6 @@ function renderOrderHistory() {
 
 async function toggleWatchlist(ticker) {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    // FIXED: Hardcoded exact relative path
     await fetch(`/api/watchlist`, { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
@@ -475,7 +486,6 @@ async function renderWatchlist() {
     body.innerHTML = "<tr><td colspan='4'>Loading live market data...</td></tr>";
     
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/watchlist-data`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: user.email })
@@ -513,7 +523,6 @@ async function requestFunds() {
     const user = JSON.parse(localStorage.getItem("user_data"));
     const amt = prompt("Amount to request (₹):", "10000");
     if (amt) {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/fund-request`, { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
@@ -539,7 +548,6 @@ function handleWithdrawFunds() {
 
 async function loadAdminRequests() {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    // FIXED: Hardcoded exact relative path
     const res = await fetch(`/api/admin/requests?email=${user.email}`);
     if (res.ok) {
         const data = await res.json();
@@ -551,7 +559,6 @@ async function loadAdminRequests() {
 
 async function processRequest(targetEmail, timestamp, action) {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    // FIXED: Hardcoded exact relative path
     await fetch(`/api/admin/process`, { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
@@ -573,7 +580,6 @@ async function sendChatMessage() {
     const req = { email: user.email, prompt: text, messages: chatHistory };
     
     try {
-        // FIXED: Hardcoded exact relative path
         const res = await fetch(`/api/chat`, { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
