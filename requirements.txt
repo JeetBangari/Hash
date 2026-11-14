@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pymongo
+bcrypt
+yfinance
+crewai
+langchain-openai
+xgboost
+scikit-learn
+pandas
+numpy
+python-dotenv
+requests

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Wealth Manager</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="style.css"> 
+</head>
+<body>
+
+    <div id="auth-layer" class="auth-wrapper">
+        <div id="login-section" class="container">
+            <h2>🔐 AI Wealth Manager</h2>
+            <input type="email" id="email" placeholder="Email Address">
+            <input type="password" id="password" placeholder="Password" onkeydown="if(event.key === 'Enter') login()">
+            <button onclick="login()" style="width: 100%; margin-bottom: 15px;">Secure Login</button>
+            <div style="text-align: center; font-size: 14px;">
+                New here? <a href="#" onclick="toggleAuthMode('signup')" style="color: #ff4b4b; text-decoration: none; font-weight: bold;">Create an account</a>
+            </div>
+        </div>
+
+        <div id="signup-section" class="container hidden">
+            <h2>🚀 Create Account</h2>
+            <input type="text" id="signup-name" placeholder="Full Name">
+            <input type="email" id="signup-email" placeholder="Email Address">
+            <input type="password" id="signup-password" placeholder="Create Password" onkeydown="if(event.key === 'Enter') signup()">
+            <button onclick="signup()" style="width: 100%; margin-bottom: 15px;">Sign Up</button>
+            <div style="text-align: center; font-size: 14px;">
+                Already have an account? <a href="#" onclick="toggleAuthMode('login')" style="color: #ff4b4b; text-decoration: none; font-weight: bold;">Log in</a>
+            </div>
+        </div>
+
+        <div id="otp-section" class="container hidden">
+            <h2>Enter 6-Digit OTP</h2>
+            <input type="text" id="otp" placeholder="123456" maxlength="6" onkeydown="if(event.key === 'Enter') verifyOTP()">
+            <button onclick="verifyOTP()" style="width: 100%;">Verify & Enter</button>
+        </div>
+    </div>
+
+    <div id="sidebar" class="sidebar hidden">
+        <h2>📈 Terminal</h2>
+        
+        <div style="margin-bottom: 15px; background: #f0f2f6; padding: 10px; border-radius: 5px; text-align: center;">
+            <label style="font-weight: bold; font-size: 14px;">⚙️ Trading Mode</label>
+            <select id="trading-mode" onchange="toggleMode()" style="margin-top: 5px; padding: 5px;">
+                <option value="demo">🎓 DEMO (Paper Trading)</option>
+                <option value="live">🟢 LIVE (Real Money)</option>
+            </select>
+        </div>
+
+        <div class="profile-card">
+            <h4 id="user-name" style="margin-top:0;">User</h4>
+            <p style="margin: 5px 0;"><span id="user-balance-label">Virtual Cash:</span> <strong id="user-balance" style="color:#26a69a;">₹0</strong></p>
+            
+            <button id="btn-request-demo" onclick="requestFunds()" style="width: 100%; padding: 5px; font-size: 12px; background: #333;">Request Funds</button>
+            
+            <div id="liveFundButtons" style="display: none; gap: 10px; width: 100%; margin-top: 5px;">
+                <button id="addFundsBtn" onclick="handleAddFunds()" style="flex: 1; background-color: #28a745; color: white; border: none; padding: 5px; border-radius: 3px; cursor: pointer; font-size: 12px;">Add Funds</button>
+                <button id="withdrawFundsBtn" onclick="handleWithdrawFunds()" style="flex: 1; background-color: #dc3545; color: white; border: none; padding: 5px; border-radius: 3px; cursor: pointer; font-size: 12px;">Withdraw</button>
+            </div>
+        </div>
+
+        <button class="nav-btn active" onclick="switchTab('tab-terminal', this)">📡 Trading Terminal</button>
+        <button class="nav-btn" onclick="switchTab('tab-portfolio', this)">💼 My Portfolio</button>
+        <button class="nav-btn" onclick="switchTab('tab-history', this)">📜 Order History</button>
+        <button class="nav-btn" onclick="switchTab('tab-watchlist', this)">⭐ Watchlist</button>
+        <button class="nav-btn" onclick="switchTab('tab-assistant', this)">💬 AI Assistant</button>
+        <button class="nav-btn" onclick="switchTab('tab-academy', this)">📖 Academy</button>
+        <button id="btn-admin" class="nav-btn hidden" onclick="switchTab('tab-admin', this)">🛡️ Admin</button>
+        
+        <div style="margin-top: auto;">
+            <button onclick="logout()" style="width: 100%; background: #ccc; color: #333;">Log Out</button>
+        </div>
+    </div>
+
+    <div id="main-content" class="main-content hidden">
+        
+        <div id="tab-terminal" class="tab-content active">
+            <div class="card" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="tickers" placeholder="Search Tickers (e.g. RELIANCE, TCS)" style="margin:0; flex: 1;" onkeydown="if(event.key === 'Enter') analyzeStocks()">
+                <button onclick="analyzeStocks()">🧠 Analyze</button>
+                <span id="loading-spinner" class="hidden">⏳ Deploying AI...</span>
+            </div>
+            
+            <div id="results-grid" class="results-grid"></div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3 id="desk-title">🏦 Paper Trading Execution Desk</h3>
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1;"><label>Ticker</label><input type="text" id="trade-ticker" placeholder="RELIANCE.NS"></div>
+                    <div style="flex: 1;"><label>Action</label><select id="trade-action"><option>BUY</option><option>SELL</option></select></div>
+                    <div style="flex: 1;"><label>Quantity</label><input type="number" id="trade-qty" value="1" min="1"></div>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1;"><label>Stop Loss (₹)</label><input type="number" id="trade-sl" value="0"></div>
+                    <div style="flex: 1;"><label>Target Price (₹)</label><input type="number" id="trade-tp" value="0"></div>
+                    <div style="flex: 1; display: flex; align-items: flex-end;">
+                        <button onclick="executeTrade()" style="width: 100%;" id="trade-btn">Execute Order</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px; background: #2b0a0a; color: white; border: 1px solid #ff4b4b;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="color: #ff4b4b; margin: 0;">🔴 LIVE MARKET ALERTS</h4>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="news-search" placeholder="Search News..." style="margin: 0; padding: 5px; width: 200px;" onkeydown="if(event.key === 'Enter') searchNews()">
+                        <button onclick="searchNews()" style="padding: 5px 10px;">🔍</button>
+                    </div>
+                </div>
+                <div id="news-container">Loading news...</div>
+            </div>
+        </div>
+
+        <div id="tab-portfolio" class="tab-content">
+            <h2>💼 Portfolio Holdings</h2>
+            
+            <div class="card summary-box">
+                <div>
+                    <h4 style="margin: 0; color: #888;">Total Invested</h4>
+                    <h2 id="total-invested" style="margin: 5px 0;">₹0.00</h2>
+                </div>
+                <div>
+                    <h4 style="margin: 0; color: #888;">Current Value</h4>
+                    <h2 id="total-current" style="margin: 5px 0;">₹0.00</h2>
+                </div>
+                <div>
+                    <h4 style="margin: 0; color: #888;">Overall P&L</h4>
+                    <h2 id="total-pnl" style="margin: 5px 0;">₹0.00</h2>
+                </div>
+            </div>
+
+            <div class="card">
+                <table id="portfolio-table">
+                    <thead><tr><th>Ticker</th><th>Qty</th><th>Avg Price</th><th>Live Price</th><th>Target</th><th>Stop Loss</th><th>Invested</th><th>Current Value</th><th>P&L</th><th>Action</th></tr></thead>
+                    <tbody id="portfolio-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-history" class="tab-content">
+            <h2>📜 Order History</h2>
+            <div class="card">
+                <table id="history-table">
+                    <thead><tr><th>Date</th><th>Ticker</th><th>Action</th><th>Qty</th><th>Execution Price</th></tr></thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-watchlist" class="tab-content">
+            <h2>⭐ My Watchlist</h2>
+            <div class="card">
+                <table id="watchlist-table">
+                    <thead><tr><th>Ticker</th><th>Live Price</th><th>Day Change</th><th>Action</th></tr></thead>
+                    <tbody id="watchlist-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-assistant" class="tab-content">
+            <h2>💬 AI Wealth Manager</h2>
+            <div class="card">
+                <div id="chat-box" class="chat-box"></div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chat-input" placeholder="Ask about your portfolio..." style="margin:0; flex: 1;" onkeydown="if(event.key === 'Enter') sendChatMessage()">
+                    <button onclick="sendChatMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-academy" class="tab-content">
+            <h2>📖 Trading Academy</h2>
+            <div class="card">
+                <h3>1. What is a Stock?</h3><p>When you buy a share, you buy partial ownership of a company.</p>
+                <h3>2. Risk Management</h3><p>Diversify your portfolio and use Stop Losses to protect capital.</p>
+            </div>
+        </div>
+
+        <div id="tab-admin" class="tab-content">
+            <h2>🛡️ Admin Panel</h2>
+            <div class="card">
+                <table id="admin-table">
+                    <thead><tr><th>User</th><th>Amount</th><th>Action</th></tr></thead>
+                    <tbody id="admin-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
