@@ -557,8 +557,8 @@ def chat_with_ai(request: ChatRequest):
 # ==========================================
 # 🌐 FRONTEND HOSTING
 # ==========================================
-# Mount the current directory to serve app.js and style.css
-app.mount("/assets", StaticFiles(directory=".", html=False), name="assets")
+# Mount the static directory to serve app.js and style.css securely
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def serve_index():
