@@ -5,6 +5,7 @@ bcrypt
 yfinance
 crewai
 langchain-openai
+tiktoken==0.7.0 --only-binary=:all:
 xgboost
 scikit-learn
 pandas
