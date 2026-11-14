@@ -1,4 +1,6 @@
-const API_URL = "";
+// ==========================================
+// 🌐 GLOBAL STATE
+// ==========================================
 let chatHistory = [];
 let currentMode = "demo";
 
@@ -20,7 +22,8 @@ async function signup() {
     if (!name || !email || !password) return alert("Please fill in all fields.");
 
     try {
-        const res = await fetch(`${API_URL}/signup`, {
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/signup`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, email, password })
@@ -43,7 +46,8 @@ async function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
     try {
-        const res = await fetch(`${API_URL}/login`, { 
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/login`, { 
             method: "POST", 
             headers: { 
                 "Content-Type": "application/json",
@@ -51,6 +55,7 @@ async function login() {
             }, 
             body: JSON.stringify({ email, password }) 
         });
+        
         if (res.ok) {
             document.getElementById("login-section").classList.add("hidden");
             document.getElementById("otp-section").classList.remove("hidden");
@@ -60,7 +65,7 @@ async function login() {
             alert("Login Failed: " + (errorData.detail || "Unknown error")); 
         }
     } catch (e) { 
-        alert("Server error. Check if API_URL is correct and Ngrok is running."); 
+        alert("Server error. Check if the backend is running."); 
         console.error("Login Error:", e);
     }
 }
@@ -68,12 +73,21 @@ async function login() {
 async function verifyOTP() {
     const email = sessionStorage.getItem("login_email");
     const otp = document.getElementById("otp").value;
-    const res = await fetch(`${API_URL}/verify-otp`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, otp }) });
+    
+    // FIXED: Hardcoded exact relative path
+    const res = await fetch(`/api/verify-otp`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ email, otp }) 
+    });
+    
     if (res.ok) {
         const data = await res.json();
         localStorage.setItem("user_data", JSON.stringify(data.user_data));
         initDashboard();
-    } else { alert("Invalid OTP"); }
+    } else { 
+        alert("Invalid OTP"); 
+    }
 }
 
 function logout() {
@@ -104,7 +118,13 @@ function initDashboard() {
 
 async function refreshUserData() {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    const res = await fetch(`${API_URL}/user-data`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email }) });
+    // FIXED: Hardcoded exact relative path
+    const res = await fetch(`/api/user-data`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ email: user.email }) 
+    });
+    
     if (res.ok) {
         const data = await res.json();
         localStorage.setItem("user_data", JSON.stringify(data.user_data));
@@ -162,7 +182,8 @@ async function analyzeStocks() {
     grid.innerHTML = "<div style='color: #333; font-weight: bold;'>Loading AI Analysis... Please wait.</div>"; 
 
     try {
-        const res = await fetch(`${API_URL}/analyze`, { 
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/analyze`, { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
             body: JSON.stringify({ tickers: tickersArray }) 
@@ -277,7 +298,8 @@ async function searchNews() {
     container.innerHTML = "Loading...";
     
     try {
-        const res = await fetch(`${API_URL}/market-updates?query=${encodeURIComponent(query)}`, {
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/market-updates?query=${encodeURIComponent(query)}`, {
             method: "GET",
             headers: {
                 "ngrok-skip-browser-warning": "true" 
@@ -331,7 +353,12 @@ async function executeTrade() {
     };
     
     try {
-        const res = await fetch(`${API_URL}/trade`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) });
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/trade`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify(req) 
+        });
         const data = await res.json();
         
         if (res.ok) {
@@ -356,7 +383,8 @@ async function renderPortfolio() {
     document.getElementById("total-pnl").style.color = "#31333F";
     
     try {
-        const res = await fetch(`${API_URL}/portfolio-data`, {
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/portfolio-data`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: user.email, mode: currentMode })
         });
@@ -432,7 +460,12 @@ function renderOrderHistory() {
 
 async function toggleWatchlist(ticker) {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    await fetch(`${API_URL}/watchlist`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, ticker }) });
+    // FIXED: Hardcoded exact relative path
+    await fetch(`/api/watchlist`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ email: user.email, ticker }) 
+    });
     refreshUserData(); 
 }
 
@@ -442,7 +475,8 @@ async function renderWatchlist() {
     body.innerHTML = "<tr><td colspan='4'>Loading live market data...</td></tr>";
     
     try {
-        const res = await fetch(`${API_URL}/watchlist-data`, {
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/watchlist-data`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: user.email })
         });
@@ -479,7 +513,12 @@ async function requestFunds() {
     const user = JSON.parse(localStorage.getItem("user_data"));
     const amt = prompt("Amount to request (₹):", "10000");
     if (amt) {
-        const res = await fetch(`${API_URL}/fund-request`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, amount: parseFloat(amt) }) });
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/fund-request`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ email: user.email, amount: parseFloat(amt) }) 
+        });
         alert((await res.json()).message);
     }
 }
@@ -500,7 +539,8 @@ function handleWithdrawFunds() {
 
 async function loadAdminRequests() {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    const res = await fetch(`${API_URL}/admin/requests?email=${user.email}`);
+    // FIXED: Hardcoded exact relative path
+    const res = await fetch(`/api/admin/requests?email=${user.email}`);
     if (res.ok) {
         const data = await res.json();
         document.getElementById("admin-body").innerHTML = data.requests.map(r => `<tr><td>${r.email}</td><td>₹${r.amount}</td>
@@ -511,7 +551,12 @@ async function loadAdminRequests() {
 
 async function processRequest(targetEmail, timestamp, action) {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    await fetch(`${API_URL}/admin/process`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, target_email: targetEmail, timestamp, action }) });
+    // FIXED: Hardcoded exact relative path
+    await fetch(`/api/admin/process`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ email: user.email, target_email: targetEmail, timestamp, action }) 
+    });
     loadAdminRequests();
 }
 
@@ -528,12 +573,19 @@ async function sendChatMessage() {
     const req = { email: user.email, prompt: text, messages: chatHistory };
     
     try {
-        const res = await fetch(`${API_URL}/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) });
+        // FIXED: Hardcoded exact relative path
+        const res = await fetch(`/api/chat`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify(req) 
+        });
         const data = await res.json();
         chatHistory.push({role: "user", content: text}, {role: "assistant", content: data.response});
         box.innerHTML += `<div class="msg-ai">🤖 ${data.response}</div>`;
         box.scrollTop = box.scrollHeight;
-    } catch (e) { box.innerHTML += `<div class="msg-ai" style="color:red;">Error connecting to AI.</div>`; }
+    } catch (e) { 
+        box.innerHTML += `<div class="msg-ai" style="color:red;">Error connecting to AI.</div>`; 
+    }
 }
 
 if (localStorage.getItem("user_data")) initDashboard();
