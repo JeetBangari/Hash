@@ -1,0 +1,25 @@
+technical_task:
+  description: >
+    Fetch historical data for {ticker} and determine the current trend. Calculate theoretical support/resistance levels.
+  expected_output: >
+    A technical report containing support/resistance levels, and momentum status for {ticker}.
+  agent: quant_analyst
+
+fundamental_task:
+  description: >
+    Analyze the latest news, sector trends, and market sentiment for {ticker}.
+  expected_output: >
+    A fundamental report detailing bullish/bearish catalysts and a sentiment score from 1-10.
+  agent: fundamental_analyst
+
+decision_task:
+  description: >
+    Review the technical and fundamental reports for {ticker}. 
+    Use the Fetch User Portfolio tool to check the account holder's name, available cash, and current holdings. 
+    Use the Calculate Smart SIP tool to generate a monthly investment plan.
+    Determine if they can afford this trade and provide highly personalized advice addressing them directly.
+    To calculate the time horizon, you MUST use mathematical logic. Look at the distance between the Current Price and your Target Price. Then, look at the stock's Average True Range (ATR) and recent volume momentum. Calculate exactly how many trading days it will take to hit the target at its current pace. You must output this as a tight, precise range in days (e.g., '10-12 Days', '4-5 Days').
+  expected_output: >
+    A fully populated JSON object matching the requested TradingDecision schema, ensuring the personalized_advice field directly addresses the user's financial situation.
+    The time_horizon field MUST be a precise day count (e.g., '14-15 Days'). Broad terms like 'Short-Term' will result in immediate failure.
+  agent: portfolio_manager
