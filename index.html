@@ -13,7 +13,13 @@
         <div id="login-section" class="container">
             <h2>🔐 AI Wealth Manager</h2>
             <input type="email" id="email" placeholder="Email Address">
-            <input type="password" id="password" placeholder="Password" onkeydown="if(event.key === 'Enter') login()">
+            
+            <!-- Password Field with View Toggle Icon -->
+            <div style="position: relative; display: flex; align-items: center; margin-bottom: 15px;">
+                <input type="password" id="password" placeholder="Password" onkeydown="if(event.key === 'Enter') login()" style="width: 100%; padding-right: 40px; margin: 0;">
+                <span onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px;" title="Show/Hide Password">👁️</span>
+            </div>
+
             <button onclick="login()" style="width: 100%; margin-bottom: 15px;">Secure Login</button>
             <div style="text-align: center; font-size: 14px;">
                 New here? <a href="#" onclick="toggleAuthMode('signup')" style="color: #ff4b4b; text-decoration: none; font-weight: bold;">Create an account</a>
