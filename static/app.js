@@ -56,11 +56,6 @@ async function login() {
     
     if (!email || !password) return alert("Please enter email and password");
 
-    const loginBtn = document.querySelector("#login-section button");
-    const originalText = loginBtn.innerText;
-    loginBtn.innerText = "Waking Server & Sending OTP...";
-    loginBtn.disabled = true;
-
     try {
         const res = await fetch(`/api/login`, { 
             method: "POST", 
@@ -72,6 +67,7 @@ async function login() {
         });
         
         if (res.ok) {
+            // Immediate transition to OTP screen
             document.getElementById("login-section").classList.add("hidden");
             document.getElementById("otp-section").classList.remove("hidden");
             sessionStorage.setItem("login_email", email); 
@@ -82,9 +78,6 @@ async function login() {
     } catch (e) { 
         alert("Server error. Check if backend is running."); 
         console.error("Login Error:", e);
-    } finally {
-        loginBtn.innerText = originalText;
-        loginBtn.disabled = false;
     }
 }
 
