@@ -14,7 +14,6 @@
             <h2>🔐 AI Wealth Manager</h2>
             <input type="email" id="email" placeholder="Email Address">
             
-            <!-- Password Field with View Toggle Icon -->
             <div style="position: relative; display: flex; align-items: center; margin-bottom: 15px;">
                 <input type="password" id="password" placeholder="Password" onkeydown="if(event.key === 'Enter') login()" style="width: 100%; padding-right: 40px; margin: 0;">
                 <span onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; cursor: pointer; user-select: none; font-size: 16px;" title="Show/Hide Password">👁️</span>
@@ -43,6 +42,9 @@
             <button onclick="verifyOTP()" style="width: 100%;">Verify & Enter</button>
         </div>
     </div>
+
+    <!-- Mobile UI Overlays -->
+    <div id="mobile-overlay" onclick="toggleMobileSidebar()"></div>
 
     <div id="sidebar" class="sidebar hidden">
         <h2>📈 Terminal</h2>
@@ -82,9 +84,12 @@
 
     <div id="main-content" class="main-content hidden">
         
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobile-menu-btn" onclick="toggleMobileSidebar()">☰ Open Menu</button>
+
         <div id="tab-terminal" class="tab-content active">
             <div class="card" style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="tickers" placeholder="Search Tickers (e.g. RELIANCE, TCS)" style="margin:0; flex: 1;" onkeydown="if(event.key === 'Enter') analyzeStocks()">
+                <input type="text" id="tickers" placeholder="Search Tickers (e.g. RELIANCE)" style="margin:0; flex: 1;" onkeydown="if(event.key === 'Enter') analyzeStocks()">
                 <button onclick="analyzeStocks()">🧠 Analyze</button>
                 <span id="loading-spinner" class="hidden">⏳ Deploying AI...</span>
             </div>
@@ -109,7 +114,7 @@
             
             <div class="card" style="margin-top: 20px; background: #2b0a0a; color: white; border: 1px solid #ff4b4b;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4 style="color: #ff4b4b; margin: 0;">🔴 LIVE MARKET ALERTS</h4>
+                    <h4 style="color: #ff4b4b; margin: 0;">🔴 LIVE ALERTS</h4>
                     <div style="display: flex; gap: 5px;">
                         <input type="text" id="news-search" placeholder="Search News..." style="margin: 0; padding: 5px; width: 200px;" onkeydown="if(event.key === 'Enter') searchNews()">
                         <button onclick="searchNews()" style="padding: 5px 10px;">🔍</button>
@@ -122,16 +127,16 @@
         <div id="tab-portfolio" class="tab-content">
             <h2>💼 Portfolio Holdings</h2>
             
-            <div class="card summary-box">
-                <div>
+            <div class="card summary-box" style="display: flex; flex-wrap: wrap; gap: 15px;">
+                <div style="flex: 1;">
                     <h4 style="margin: 0; color: #888;">Total Invested</h4>
                     <h2 id="total-invested" style="margin: 5px 0;">₹0.00</h2>
                 </div>
-                <div>
+                <div style="flex: 1;">
                     <h4 style="margin: 0; color: #888;">Current Value</h4>
                     <h2 id="total-current" style="margin: 5px 0;">₹0.00</h2>
                 </div>
-                <div>
+                <div style="flex: 1;">
                     <h4 style="margin: 0; color: #888;">Overall P&L</h4>
                     <h2 id="total-pnl" style="margin: 5px 0;">₹0.00</h2>
                 </div>
