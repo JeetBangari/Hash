@@ -248,6 +248,85 @@ th {
     font-size: 18px;
 }
 
+/* ==========================================
+   📱 MOBILE RESPONSIVENESS
+   ========================================== */
+#mobile-overlay { display: none; }
+#mobile-menu-btn { display: none; }
+
+@media (max-width: 768px) {
+    /* Convert Sidebar to Slide-out Menu */
+    #sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 280px;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+        background-color: #f8f9fa; /* Ensures it is not transparent */
+        overflow-y: auto;
+    }
+    
+    #sidebar.mobile-open {
+        left: 0; /* Slides the menu in */
+    }
+
+    /* Main Content Full Width */
+    #main-content {
+        width: 100%;
+        margin-left: 0 !important;
+        padding: 10px;
+    }
+
+    /* Show Hamburger Menu & Overlay */
+    #mobile-menu-btn {
+        display: inline-block;
+        margin-bottom: 15px;
+        background: #2b2d42;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+    }
+
+    #mobile-overlay.active {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.6);
+        z-index: 999;
+    }
+
+    /* Fix Squished Execution Desk & Inputs */
+    .card div[style*="display: flex"] {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .card input, .card select, .card button {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* Enable Horizontal Scrolling for Tables */
+    .card {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+        min-width: 700px; /* Forces tables to remain wide so user can swipe sideways */
+    }
+}
 .ai-reasoning-text {
     margin-bottom: 0;
     font-size: 15px;
