@@ -133,24 +133,30 @@ function initDashboard() {
         loadAdminRequests();
     }
 
-    toggleMode(); 
-    renderWatchlist();
+    // 🟢 FIX: Automatically sync the latest database balance anytime the UI loads
+    refreshUserData(); 
     searchNews(); 
 }
 
 async function refreshUserData() {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    const res = await fetch(`/api/user-data`, { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ email: user.email }) 
-    });
+    if (!user) return;
     
-    if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem("user_data", JSON.stringify(data.user_data));
-        toggleMode(); 
-        renderWatchlist();
+    try {
+        const res = await fetch(`/api/user-data`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ email: user.email }) 
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem("user_data", JSON.stringify(data.user_data));
+            toggleMode(); 
+            renderWatchlist();
+        }
+    } catch (e) {
+        console.error("Failed to refresh user data", e);
     }
 }
 
@@ -160,7 +166,6 @@ function switchTab(tabId, btn) {
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
     btn.classList.add('active');
     
-    // Auto-close sidebar on mobile after navigating
     if (window.innerWidth <= 768) {
         document.getElementById("sidebar").classList.remove("mobile-open");
         const overlay = document.getElementById("mobile-overlay");
@@ -234,7 +239,6 @@ async function analyzeStocks() {
 
             if(document.getElementById("trade-ticker")) {
                 document.getElementById("trade-ticker").value = ticker;
-                
                 if(target !== "TBD" && target !== "-") document.getElementById("trade-tp").value = parseFloat(target);
                 if(sl !== "TBD" && sl !== "-") document.getElementById("trade-sl").value = parseFloat(sl);
             }
@@ -294,21 +298,15 @@ async function analyzeStocks() {
             if (data.chart_data && data.chart_data.length > 0) {
                 const x = data.chart_data.map(d => d.time);
                 const trace = { 
-                    x: x, 
-                    open: data.chart_data.map(d=>d.open), 
-                    high: data.chart_data.map(d=>d.high), 
-                    low: data.chart_data.map(d=>d.low), 
-                    close: data.chart_data.map(d=>d.close), 
-                    type: 'candlestick',
-                    increasing: {line: {color: '#26a69a'}},
-                    decreasing: {line: {color: '#ef5350'}}
+                    x: x, open: data.chart_data.map(d=>d.open), high: data.chart_data.map(d=>d.high), 
+                    low: data.chart_data.map(d=>d.low), close: data.chart_data.map(d=>d.close), 
+                    type: 'candlestick', increasing: {line: {color: '#26a69a'}}, decreasing: {line: {color: '#ef5350'}}
                 };
                 const layout = {
                     margin: {t:20, b:40, l:50, r:20}, 
                     xaxis:{rangeslider:{visible:false}, gridcolor: '#444', tickfont: {color: '#aaa'}},
                     yaxis:{gridcolor: '#444', tickfont: {color: '#aaa'}},
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(0,0,0,0)'
+                    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)'
                 };
                 Plotly.newPlot(safeChartId, [trace], layout, {responsive: true});
             }
@@ -327,38 +325,24 @@ async function searchNews() {
     try {
         const res = await fetch(`/api/market-updates?query=${encodeURIComponent(query)}`, {
             method: "GET",
-            headers: {
-                "ngrok-skip-browser-warning": "true" 
-            }
+            headers: { "ngrok-skip-browser-warning": "true" }
         });
         
-        if (!res.ok) {
-            throw new Error(`Server Error: ${res.status} ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`Server Error`);
 
         const rawText = await res.text();
+        const data = JSON.parse(rawText);
         
-        try {
-            const data = JSON.parse(rawText);
-            
-            if (!data.articles || data.articles.length === 0) {
-                container.innerHTML = "No recent market updates found for this search.";
-                return;
-            }
-            
-            container.innerHTML = data.articles.map(a => `<div style="margin-bottom:10px;">• <a href="${a.url}" target="_blank" style="color:white; text-decoration:none;"><b>${a.title}</b></a></div>`).join("");
-            
-        } catch (jsonError) {
-            if (rawText.includes("ngrok")) {
-                throw new Error("Ngrok blocked the request despite bypass.");
-            } else {
-                throw new Error("Received invalid data from the server. Not JSON.");
-            }
+        if (!data.articles || data.articles.length === 0) {
+            container.innerHTML = "No recent market updates found for this search.";
+            return;
         }
-
+        
+        container.innerHTML = data.articles.map(a => `<div style="margin-bottom:10px;">• <a href="${a.url}" target="_blank" style="color:white; text-decoration:none;"><b>${a.title}</b></a></div>`).join("");
+        
     } catch (e) {
         console.error("News Fetch Diagnostic Error:", e);
-        container.innerHTML = `<span style="color:#ffbaba;"><b>Diagnostic Error:</b> ${e.message}</span>`;
+        container.innerHTML = `<span style="color:#ffbaba;"><b>Diagnostic Error:</b> Failed to load news.</span>`;
     }
 }
 
@@ -429,7 +413,6 @@ async function renderPortfolio() {
 
             const color = p.pnl >= 0 ? "#26a69a" : "#ef5350";
             const sign = p.pnl >= 0 ? "+" : "";
-            
             const displayTP = p.target_price > 0 ? `₹${p.target_price.toFixed(2)}` : "-";
             const displaySL = p.stop_loss > 0 ? `₹${p.stop_loss.toFixed(2)}` : "-";
 
@@ -564,19 +547,25 @@ async function loadAdminRequests() {
     if (res.ok) {
         const data = await res.json();
         document.getElementById("admin-body").innerHTML = data.requests.map(r => `<tr><td>${r.email}</td><td>₹${r.amount}</td>
-        <td><button onclick="processRequest('${r.email}', '${r.timestamp}', 'approved')" style="background:green;">Approve</button>
-        <button onclick="processRequest('${r.email}', '${r.timestamp}', 'rejected')">Reject</button></td></tr>`).join("");
+        <td><button onclick="processRequest('${r.email}', '${r.timestamp}', 'approved')" style="background:green; padding:5px 10px; color:white; border:none; border-radius:4px;">Approve</button>
+        <button onclick="processRequest('${r.email}', '${r.timestamp}', 'rejected')" style="background:#ef5350; padding:5px 10px; color:white; border:none; border-radius:4px;">Reject</button></td></tr>`).join("");
     }
 }
 
 async function processRequest(targetEmail, timestamp, action) {
     const user = JSON.parse(localStorage.getItem("user_data"));
-    await fetch(`/api/admin/process`, { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ email: user.email, target_email: targetEmail, timestamp, action }) 
-    });
-    loadAdminRequests();
+    try {
+        await fetch(`/api/admin/process`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ email: user.email, target_email: targetEmail, timestamp, action }) 
+        });
+        // 🟢 FIX: Added confirmation alert so the admin knows the button press was successful
+        alert(`Fund request successfully ${action}!`);
+        loadAdminRequests();
+    } catch (e) {
+        alert("Failed to process request.");
+    }
 }
 
 async function sendChatMessage() {
