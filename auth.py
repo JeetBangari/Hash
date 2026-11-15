@@ -6,7 +6,6 @@ from pymongo import MongoClient
 import bcrypt
 from dotenv import load_dotenv
 
-# Load environment variables (useful for local testing)
 load_dotenv()
 
 # ==========================================
@@ -23,7 +22,6 @@ cache_collection = db["ai_analysis_cache"]
 # 🔐 AUTHENTICATION & OTP LOGIC
 # ==========================================
 def verify_credentials(email, password):
-    """Verifies user login credentials."""
     user = users_collection.find_one({"email": email})
     if not user:
         return False, "User not found. Please create an account."
@@ -34,11 +32,9 @@ def verify_credentials(email, password):
     return False, "Invalid password"
 
 def generate_and_store_otp(email):
-    """Generates a 6-digit OTP, stores it, and sends it via HTTPS Bridge."""
     otp = str(random.randint(100000, 999999))
     expiry = datetime.utcnow() + timedelta(minutes=10)
     
-    # Store OTP in the database
     users_collection.update_one(
         {"email": email}, 
         {"$set": {"otp": otp, "otp_expiry": expiry}}
@@ -56,7 +52,6 @@ def generate_and_store_otp(email):
     }
 
     try:
-        # Send via standard HTTPS (Port 443) - Bypasses Render's SMTP Firewall
         response = requests.post(script_url, json=payload, allow_redirects=True)
         if response.status_code == 200:
             print(f"✅ OTP sent successfully via HTTPS to {email}")
@@ -64,18 +59,14 @@ def generate_and_store_otp(email):
         else:
             print(f"❌ Script Bridge failed: {response.text}")
             return False
-            
     except Exception as e:
         print(f"❌ Failed to send OTP via HTTPS: {e}")
         return False
 
 def verify_otp(email, otp):
-    """Verifies the OTP provided by the user."""
-    
-    # --- Master OTP Bypass for Admin ---
+    # Master OTP Bypass for Admin
     if email == "admin@admin.com" and otp == "123456":
         return True, "Admin Master OTP Verified"
-    # -----------------------------------
         
     user = users_collection.find_one({"email": email})
     if not user:
@@ -97,14 +88,12 @@ def verify_otp(email, otp):
 # 🤖 AI CACHING LOGIC
 # ==========================================
 def get_cached_analysis(ticker):
-    """Retrieves AI analysis from MongoDB cache if available."""
     cache = cache_collection.find_one({"ticker": ticker})
     if cache and "data" in cache:
         return cache["data"]
     return None
 
 def save_analysis_to_cache(ticker, ai_data):
-    """Saves fresh AI analysis to MongoDB cache."""
     cache_collection.update_one(
         {"ticker": ticker},
         {"$set": {"ticker": ticker, "data": ai_data, "updated_at": datetime.utcnow()}},
@@ -112,14 +101,14 @@ def save_analysis_to_cache(ticker, ai_data):
     )
 
 # ==========================================
-# 💼 TRADING & PORTFOLIO LOGIC
+# 💼 TRADING LOGIC
 # ==========================================
 def execute_dummy_trade(email, ticker, action, quantity, current_price, stop_loss=0.0, target_price=0.0):
     user = users_collection.find_one({"email": email})
     if not user:
         return False, "User not found", None
         
-    balance = user.get("virtual_balance", 0.0)
+    balance = float(user.get("virtual_balance", 0.0))
     portfolio = user.get("demo_portfolio", {})
     total_cost = quantity * current_price
     
@@ -206,7 +195,7 @@ def submit_fund_request(email, amount):
         
     req = {
         "email": email,
-        "amount": amount,
+        "amount": float(amount),
         "timestamp": datetime.utcnow().isoformat(),
         "status": "pending"
     }
@@ -221,6 +210,9 @@ def get_all_pending_requests():
     for u in users:
         for req in u.get("fund_requests", []):
             if req.get("status") == "pending":
+                # FIX: Fallback to account email to patch the "undefined" row bug
+                if "email" not in req or not req["email"]:
+                    req["email"] = u.get("email", "Unknown")
                 requests.append(req)
     return requests
 
@@ -230,19 +222,24 @@ def process_fund_request(target_email, timestamp, action):
         return False
         
     requests = user.get("fund_requests", [])
-    amount_to_add = 0
+    amount_to_add = 0.0
     
     for r in requests:
         if r.get("timestamp") == timestamp and r.get("status") == "pending":
             r["status"] = action
             if action == "approved":
-                amount_to_add = r.get("amount", 0)
+                try:
+                    amount_to_add = float(r.get("amount", 0))
+                except (ValueError, TypeError):
+                    amount_to_add = 0.0
             break
             
     update_data = {"fund_requests": requests}
     
     if amount_to_add > 0:
-        update_data["virtual_balance"] = user.get("virtual_balance", 0.0) + amount_to_add
+        # FIX: Safe casting to prevent string addition errors
+        current_balance = float(user.get("virtual_balance", 0.0))
+        update_data["virtual_balance"] = current_balance + amount_to_add
         
     users_collection.update_one({"email": target_email}, {"$set": update_data})
     return True
