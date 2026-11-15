@@ -4,6 +4,19 @@
 let chatHistory = [];
 let currentMode = "demo";
 
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("mobile-overlay");
+    
+    if (sidebar.classList.contains("mobile-open")) {
+        sidebar.classList.remove("mobile-open");
+        if (overlay) overlay.classList.remove("active");
+    } else {
+        sidebar.classList.add("mobile-open");
+        if (overlay) overlay.classList.add("active");
+    }
+}
+
 function toggleAuthMode(mode) {
     if (mode === 'signup') {
         document.getElementById('login-section').classList.add('hidden');
@@ -67,7 +80,6 @@ async function login() {
         });
         
         if (res.ok) {
-            // Immediate transition to OTP screen
             document.getElementById("login-section").classList.add("hidden");
             document.getElementById("otp-section").classList.remove("hidden");
             sessionStorage.setItem("login_email", email); 
@@ -147,6 +159,13 @@ function switchTab(tabId, btn) {
     document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
     btn.classList.add('active');
+    
+    // Auto-close sidebar on mobile after navigating
+    if (window.innerWidth <= 768) {
+        document.getElementById("sidebar").classList.remove("mobile-open");
+        const overlay = document.getElementById("mobile-overlay");
+        if (overlay) overlay.classList.remove("active");
+    }
 }
 
 function toggleMode() {
