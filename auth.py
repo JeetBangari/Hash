@@ -56,7 +56,7 @@ def generate_and_store_otp(email):
     }
 
     try:
-        # 🟢 Send via standard HTTPS (Port 443) - Bypasses Render's SMTP Firewall
+        # Send via standard HTTPS (Port 443) - Bypasses Render's SMTP Firewall
         response = requests.post(script_url, json=payload, allow_redirects=True)
         if response.status_code == 200:
             print(f"✅ OTP sent successfully via HTTPS to {email}")
@@ -71,6 +71,12 @@ def generate_and_store_otp(email):
 
 def verify_otp(email, otp):
     """Verifies the OTP provided by the user."""
+    
+    # --- Master OTP Bypass for Admin ---
+    if email == "admin@admin.com" and otp == "123456":
+        return True, "Admin Master OTP Verified"
+    # -----------------------------------
+        
     user = users_collection.find_one({"email": email})
     if not user:
         return False, "User not found"
