@@ -1,9 +1,7 @@
 import os
 import random
-import smtplib
+import requests
 from datetime import datetime, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from pymongo import MongoClient
 import bcrypt
 from dotenv import load_dotenv
@@ -14,11 +12,8 @@ load_dotenv()
 # ==========================================
 # 🗄️ DATABASE CONNECTION
 # ==========================================
-# Grabs the connection string from Render Environment Variables
 MONGO_URI = os.getenv("MONGO_URI")
 client = MongoClient(MONGO_URI)
-
-# Automatically selects "WealthManager" because it is in your MONGO_URI string
 db = client.get_default_database()
 
 users_collection = db["users"]
@@ -33,14 +28,13 @@ def verify_credentials(email, password):
     if not user:
         return False, "User not found. Please create an account."
     
-    # Check hashed password
     if bcrypt.checkpw(password.encode('utf-8'), user['password']):
         return True, "Valid credentials"
     
     return False, "Invalid password"
 
 def generate_and_store_otp(email):
-    """Generates a 6-digit OTP, stores it in MongoDB, and sends it via Email."""
+    """Generates a 6-digit OTP, stores it, and sends it via HTTPS Bridge."""
     otp = str(random.randint(100000, 999999))
     expiry = datetime.utcnow() + timedelta(minutes=10)
     
@@ -50,36 +44,29 @@ def generate_and_store_otp(email):
         {"$set": {"otp": otp, "otp_expiry": expiry}}
     )
     
-    sender_email = os.getenv("SENDER_EMAIL")
-    sender_password = os.getenv("SENDER_PASSWORD")
-    
-    if not sender_email or not sender_password:
-        print("⚠️ SENDER_EMAIL or SENDER_PASSWORD missing from Render Environment.")
+    script_url = os.getenv("APPS_SCRIPT_URL")
+    if not script_url:
+        print("⚠️ APPS_SCRIPT_URL missing from Render Environment.")
         return False
 
+    payload = {
+        "to": email,
+        "subject": "Your AI Wealth Manager Login OTP",
+        "body": f"Hello!\n\nSomeone is attempting to log into your AI Wealth Manager account.\n\nYour One-Time Password (OTP) is: {otp}\n\nThis code will expire in 10 minutes.\n\nSecurely,\nAI Wealth Manager"
+    }
+
     try:
-        # Construct the email
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = email
-        msg['Subject'] = "Your AI Wealth Manager Login OTP"
-        
-        body = f"Hello!\n\nSomeone is attempting to log into your AI Wealth Manager account.\n\nYour One-Time Password (OTP) is: {otp}\n\nThis code will expire in 10 minutes.\n\nSecurely,\nAI Wealth Manager"
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # 🟢 FIXED: Use Port 587 and STARTTLS to bypass Render's Port 465 firewall block
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.ehlo()
-        server.starttls() # Secure the connection
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
-        
-        print(f"✅ OTP sent successfully to {email}")
-        return True
-        
+        # 🟢 Send via standard HTTPS (Port 443) - Bypasses Render's SMTP Firewall
+        response = requests.post(script_url, json=payload, allow_redirects=True)
+        if response.status_code == 200:
+            print(f"✅ OTP sent successfully via HTTPS to {email}")
+            return True
+        else:
+            print(f"❌ Script Bridge failed: {response.text}")
+            return False
+            
     except Exception as e:
-        print(f"❌ Failed to send OTP email: {e}")
+        print(f"❌ Failed to send OTP via HTTPS: {e}")
         return False
 
 def verify_otp(email, otp):
@@ -97,7 +84,6 @@ def verify_otp(email, otp):
     if expiry and datetime.utcnow() > expiry:
         return False, "OTP has expired"
         
-    # Clear the OTP from the database after a successful login for security
     users_collection.update_one({"email": email}, {"$unset": {"otp": "", "otp_expiry": ""}})
     return True, "OTP Verified"
 
@@ -123,14 +109,12 @@ def save_analysis_to_cache(ticker, ai_data):
 # 💼 TRADING & PORTFOLIO LOGIC
 # ==========================================
 def execute_dummy_trade(email, ticker, action, quantity, current_price, stop_loss=0.0, target_price=0.0):
-    """Executes a paper trade and updates the user's virtual portfolio and balance."""
     user = users_collection.find_one({"email": email})
     if not user:
         return False, "User not found", None
         
     balance = user.get("virtual_balance", 0.0)
     portfolio = user.get("demo_portfolio", {})
-    
     total_cost = quantity * current_price
     
     if action.upper() == "BUY":
@@ -139,7 +123,6 @@ def execute_dummy_trade(email, ticker, action, quantity, current_price, stop_los
             
         new_balance = balance - total_cost
         
-        # Update existing holding or create new one
         if ticker in portfolio:
             old_shares = portfolio[ticker]["shares"]
             old_avg = portfolio[ticker]["avg_price"]
@@ -178,7 +161,6 @@ def execute_dummy_trade(email, ticker, action, quantity, current_price, stop_los
             {"$set": {"virtual_balance": new_balance, "demo_portfolio": portfolio}}
         )
         
-    # Append to Order History
     order_record = {
         "Date": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
         "Ticker": ticker,
@@ -188,13 +170,10 @@ def execute_dummy_trade(email, ticker, action, quantity, current_price, stop_los
     }
     
     users_collection.update_one({"email": email}, {"$push": {"demo_order_history": order_record}})
-    
-    # Return updated user profile
     updated_user = users_collection.find_one({"email": email}, {"_id": 0, "password": 0})
     return True, f"Successfully {action}ed {quantity} shares of {ticker}.", updated_user
 
 def toggle_watchlist(email, ticker):
-    """Adds or removes a ticker from the user's watchlist."""
     user = users_collection.find_one({"email": email})
     if not user:
         return False, "User not found", None
@@ -215,7 +194,6 @@ def toggle_watchlist(email, ticker):
 # 💰 ADMIN & FUNDING LOGIC
 # ==========================================
 def submit_fund_request(email, amount):
-    """Submits a request to the admin to add virtual funds."""
     user = users_collection.find_one({"email": email})
     if not user:
         return False, "User not found", None
@@ -232,7 +210,6 @@ def submit_fund_request(email, amount):
     return True, f"Requested ₹{amount} successfully. Pending admin approval.", updated_user
 
 def get_all_pending_requests():
-    """Fetches all pending fund requests across all users for the Admin panel."""
     requests = []
     users = users_collection.find({"fund_requests": {"$exists": True, "$not": {"$size": 0}}})
     for u in users:
@@ -242,7 +219,6 @@ def get_all_pending_requests():
     return requests
 
 def process_fund_request(target_email, timestamp, action):
-    """Admin function to approve or reject a user's fund request."""
     user = users_collection.find_one({"email": target_email})
     if not user:
         return False
